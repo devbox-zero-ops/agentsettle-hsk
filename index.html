@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentSettle HSK — AI Agent Payment Mandates & Verifiable A2A Settlement (HashKey Chain 133)</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <style>
+    :root { --bg:#070b14; --panel:#0f172a; --card:#1e293b; --border:#334155; --text:#f1f5f9; --muted:#94a3b8; --accent:#38bdf8; --green:#4ade80; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:radial-gradient(circle at 15% 10%,rgba(56,189,248,0.14),transparent 36%),var(--bg); color:var(--text); line-height:1.55; }
+    a { color:var(--accent); text-decoration:none; }
+    header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:14px 22px; background:#0b1220; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; }
+    .pill { font-size:11px; padding:3px 9px; border-radius:999px; background:rgba(56,189,248,0.14); color:#7dd3fc; border:1px solid rgba(56,189,248,0.35); }
+    .pill-ok { background:rgba(74,222,128,0.14); color:var(--green); border-color:rgba(74,222,128,0.35); }
+    .btn { padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:13px; cursor:pointer; font-weight:600; }
+    .btn-primary { background:linear-gradient(135deg,#0284c7,#2563eb); border:none; color:#fff; }
+    .btn-green { background:linear-gradient(135deg,#059669,#10b981); border:none; color:#fff; }
+    .wrap { max-width:1120px; margin:0 auto; padding:22px 18px 48px; }
+    .net-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin-bottom:20px; }
+    .stat { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+    .stat .lbl { font-size:11.5px; color:var(--muted); text-transform:uppercase; }
+    .stat .val { font-size:16px; font-weight:700; margin-top:3px; word-break:break-all; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+    @media (max-width:900px) { .grid-2 { grid-template-columns:1fr; } }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px; }
+    .card h2 { margin:0 0 12px; font-size:16px; color:var(--accent); }
+    .field { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+    .field label { font-size:12px; color:var(--muted); }
+    .field input, .field textarea { padding:8px 10px; border-radius:7px; border:1px solid var(--border); background:#070b14; color:var(--text); font-size:13.5px; font-family:inherit; }
+    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .log-box { background:#070b14; border:1px solid var(--border); border-radius:8px; padding:12px; font-family:monospace; font-size:12.5px; min-height:110px; max-height:240px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>🤖 AgentSettle HSK</span>
+      <span class="pill">HashKey Chain Testnet · Chain 133</span>
+      <span class="pill pill-ok" id="rpcBadge">RPC: Checking...</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn" href="https://testnet-explorer.hskchain.net" target="_blank">HSK Explorer</a>
+      <a class="btn" href="https://github.com/devbox-zero-ops/agentsettle-hsk" target="_blank">GitHub Repo</a>
+      <button class="btn btn-primary" id="btnConnect">Connect Wallet & Switch HSK (133)</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="net-bar">
+      <div class="stat"><div class="lbl">HSK Testnet Block</div><div class="val" id="liveBlock">—</div></div>
+      <div class="stat"><div class="lbl">Connected Wallet</div><div class="val" id="walletAddr">Not connected (Read-Only)</div></div>
+      <div class="stat"><div class="lbl">Native HSK Balance</div><div class="val" id="hskBal">—</div></div>
+      <div class="stat"><div class="lbl">Vault Contract</div><div class="val" id="vaultPreview" style="font-size:12px;font-family:monospace;">Deploy or paste below</div></div>
+    </section>
+
+    <section class="card" style="margin-bottom:18px;">
+      <h2>0. AgentSettlementVault Deployment (HashKey Chain Testnet · Chain 133)</h2>
+      <div class="row-2" style="align-items:end;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Deployed Vault Address</label>
+          <input id="vaultAddr" placeholder="0x... (Deploy new vault or paste existing address)" />
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-green" id="btnDeploy">Deploy New Vault</button>
+          <button class="btn" id="btnInspect">Inspect Mandate #1</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <section class="card">
+        <h2>1. Issue AI Agent Payment Mandate (Guardrails)</h2>
+        <div class="field"><label>Authorized Agent Wallet Address</label><input id="agentAddr" placeholder="0x..." /></div>
+        <div class="row-2">
+          <div class="field"><label>Max Per Tx (HSK)</label><input id="maxTx" type="number" step="0.01" value="0.05" /></div>
+          <div class="field"><label>Daily Spend Limit (HSK)</label><input id="dailyLim" type="number" step="0.01" value="0.20" /></div>
+        </div>
+        <div class="row-2">
+          <div class="field"><label>Initial Vault Deposit (HSK)</label><input id="depositAmt" type="number" step="0.01" value="0.10" /></div>
+          <div class="field"><label>Expiry (Days)</label><input id="expDays" type="number" value="7" /></div>
+        </div>
+        <button class="btn btn-primary" id="btnCreateMandate" style="width:100%;">Create & Fund Agent Mandate</button>
+      </section>
+
+      <section class="card">
+        <h2>2. Autonomous A2A Settlement + Verifiable Memory Hash</h2>
+        <div class="row-2">
+          <div class="field"><label>Mandate ID</label><input id="mId" type="number" value="1" /></div>
+          <div class="field"><label>Settlement Amount (HSK)</label><input id="settleAmt" type="number" step="0.001" value="0.01" /></div>
+        </div>
+        <div class="field"><label>Recipient Agent / Service Address</label><input id="recipAddr" placeholder="0x..." /></div>
+        <div class="field"><label>Verifiable Agent Execution Log (hashed via keccak256 on-chain)</label><textarea id="execLog" rows="2">{"task":"price-feed-api","status":"verified","latency_ms":142}</textarea></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Task Memory Hash: <code id="memHash"></code></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-green" id="btnSettle">Execute A2A Settlement</button>
+          <button class="btn" id="btnRevoke">Emergency Revoke & Refund</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>3. Live On-Chain Activity Log</h2>
+      <div class="log-box" id="logBox">Ready. Connected to HashKey Chain Testnet RPC (https://testnet.hsk.xyz).</div>
+    </section>
+  </main>
+
+  <script>
+    const HSK = { chainIdHex: "0x85", rpcUrl: "https://testnet.hsk.xyz", explorer: "https://testnet-explorer.hskchain.net" };
+    const el = (id) => document.getElementById(id);
+    const readProvider = new ethers.JsonRpcProvider(HSK.rpcUrl);
+    let signer = null, artifact = null;
+
+    function log(m) { el("logBox").textContent = `[${new Date().toLocaleTimeString()}] ${m}\n` + el("logBox").textContent; }
+    function updateHash() { el("memHash").textContent = ethers.keccak256(ethers.toUtf8Bytes(el("execLog").value || "")); }
+
+    async function init() {
+      try {
+        const bn = await readProvider.getBlockNumber();
+        el("liveBlock").textContent = `#${bn.toLocaleString()}`;
+        el("rpcBadge").textContent = "RPC: Online (133)";
+      } catch (e) { el("rpcBadge").textContent = "RPC: Error"; log("RPC error: " + e.message); }
+      try {
+        artifact = await (await fetch("artifacts/AgentSettlementVault.json")).json();
+        log(`Loaded compiled AgentSettlementVault (${artifact.abi.length} ABI items).`);
+      } catch (e) { log("Artifact note: " + e.message); }
+      updateHash();
+    }
+
+    el("btnConnect").addEventListener("click", async () => {
+      if (!window.ethereum) return alert("Install MetaMask or Rabby first.");
+      try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        try {
+          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: HSK.chainIdHex }] });
+        } catch (err) {
+          if (err.code === 4902) {
+            await window.ethereum.request({
+              method: "wallet_addEthereumChain",
+              params: [{ chainId: HSK.chainIdHex, chainName: "HashKey Chain Testnet", nativeCurrency: { name: "HSK", symbol: "HSK", decimals: 18 }, rpcUrls: [HSK.rpcUrl], blockExplorerUrls: [HSK.explorer] }]
+            });
+          }
+        }
+        signer = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+        const a = await signer.getAddress();
+        el("walletAddr").textContent = `${a.slice(0,8)}...${a.slice(-6)}`;
+        if (!el("agentAddr").value) el("agentAddr").value = a;
+        if (!el("recipAddr").value) el("recipAddr").value = a;
+        const b = await readProvider.getBalance(a);
+        el("hskBal").textContent = `${Number(ethers.formatEther(b)).toFixed(4)} HSK`;
+        log("Connected on HashKey Chain Testnet (133): " + a);
+      } catch (e) { log("Connect failed: " + e.message); }
+    });
+
+    el("btnDeploy").addEventListener("click", async () => {
+      if (!signer || !artifact) return log("Connect wallet first.");
+      try {
+        log("Deploying AgentSettlementVault to HashKey Chain Testnet...");
+        const c = await (new ethers.ContractFactory(artifact.abi, artifact.bytecode, signer)).deploy();
+        await c.waitForDeployment();
+        const addr = await c.getAddress();
+        el("vaultAddr").value = addr;
+        el("vaultPreview").textContent = addr;
+        log("Deployed Vault: " + addr);
+      } catch (e) { log("Deploy failed: " + e.message); }
+    });
+
+    el("btnCreateMandate").addEventListener("click", async () => {
+      if (!signer || !artifact) return log("Connect wallet first.");
+      try {
+        const c = new ethers.Contract(el("vaultAddr").value.trim(), artifact.abi, signer);
+        const exp = Math.floor(Date.now() / 1000) + Number(el("expDays").value || 7) * 86400;
+        const tx = await c.createMandate(
+          el("agentAddr").value.trim(), ethers.ZeroAddress,
+          ethers.parseEther(String(el("maxTx").value)), ethers.parseEther(String(el("dailyLim").value)), exp,
+          { value: ethers.parseEther(String(el("depositAmt").value)) }
+        );
+        log("Mandate tx: " + tx.hash);
+        await tx.wait();
+        log("Mandate created & funded on HashKey Chain Testnet!");
+      } catch (e) { log("Create mandate failed: " + e.message); }
+    });
+
+    el("btnSettle").addEventListener("click", async () => {
+      if (!signer || !artifact) return log("Connect wallet first.");
+      try {
+        const c = new ethers.Contract(el("vaultAddr").value.trim(), artifact.abi, signer);
+        const h = ethers.keccak256(ethers.toUtf8Bytes(el("execLog").value || ""));
+        const tx = await c.executeAgentSettlement(BigInt(el("mId").value || 1), el("recipAddr").value.trim(), ethers.parseEther(String(el("settleAmt").value)), h, "a2a-settlement");
+        log("A2A Settlement tx: " + tx.hash);
+        await tx.wait();
+        log("A2A Settlement confirmed with verifiable memory hash: " + h);
+      } catch (e) { log("Settlement failed: " + e.message); }
+    });
+
+    el("btnRevoke").addEventListener("click", async () => {
+      if (!signer || !artifact) return log("Connect wallet first.");
+      try {
+        const c = new ethers.Contract(el("vaultAddr").value.trim(), artifact.abi, signer);
+        const tx = await c.revokeMandate(BigInt(el("mId").value || 1));
+        await tx.wait();
+        log("Mandate revoked & remaining balance refunded. Tx: " + tx.hash);
+      } catch (e) { log("Revoke failed: " + e.message); }
+    });
+
+    el("execLog").addEventListener("input", updateHash);
+    init();
+  </script>
+</body>
+</html>
